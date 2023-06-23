@@ -17,6 +17,8 @@ on:
       - 'master'
     paths-ignore:
       - '**.md'
+  schedule:
+    - cron: '45 5 * * *'
 
 env:
   DOCKERHUB_SLUG: librenms/librenms
@@ -44,6 +46,12 @@ jobs:
             org.opencontainers.image.description=Fully featured network monitoring system
             org.opencontainers.image.vendor=LibreNMS
       -
+        name: Get latest LibreNMS version
+        id: librenms_version
+        run: |
+          LIBRENMS_VERSION=$(curl --silent "https://api.github.com/repos/librenms/librenms/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "::set-output name=version::${LIBRENMS_VERSION}"
+      -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       -
@@ -65,6 +73,7 @@ jobs:
             ${{ steps.meta.outputs.bake-file }}
           targets: image-all
           push: ${{ github.event_name != 'pull_request' }}
+          args: LIBRENMS_VERSION=${{ steps.librenms_version.outputs.version }}
       -
         name: Check manifest
         if: github.event_name != 'pull_request'
